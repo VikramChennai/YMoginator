@@ -1,0 +1,159 @@
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  CalendarDays,
+  Camera,
+  Trophy,
+  ArrowRight,
+  Flame,
+} from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
+import { VerifyInline } from "@/components/auth/verify-inline";
+
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const supabase = await createClient();
+
+  const { data: topProfiles } = await supabase
+    .from("profiles")
+    .select("name, company, batch, current_streak")
+    .order("current_streak", { ascending: false })
+    .limit(5);
+
+  const features = [
+    {
+      icon: CalendarDays,
+      title: "Book Gym Sessions",
+      description:
+        "Book slots at popular gyms in SF to work out with other YC founders.",
+    },
+    {
+      icon: Camera,
+      title: "AI-Verified Check-ins",
+      description:
+        "In-browser vLLM powered verifcation. Just take a picture of you at the gym!",
+    },
+    {
+      icon: Trophy,
+      title: "Leaderboard",
+      description:
+        "See who's locked in at the gym. Friendly community competition :)",
+    },
+  ];
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      {/* Top bar — just a login link, no full navbar */}
+      <div className="flex items-center justify-between px-6 py-4">
+        <div className="flex items-center gap-1.5 font-bold">
+          <svg viewBox="0 0 48 48" className="h-6 w-6 shrink-0 rounded-lg">
+            <rect width="48" height="48" rx="10" fill="#FF6600" />
+            <g transform="rotate(-45 24 24)">
+              <rect x="14" y="21" width="20" height="6" rx="3" fill="white" />
+              <rect x="10" y="17.5" width="7" height="13" rx="2.5" fill="white" />
+              <rect x="31" y="17.5" width="7" height="13" rx="2.5" fill="white" />
+            </g>
+          </svg>
+          <span>Y Moginator</span>
+        </div>
+        <Link href="/login">
+          <Button variant="ghost" size="sm">
+            Log in
+          </Button>
+        </Link>
+      </div>
+
+      {/* Hero */}
+      <section className="flex flex-col items-center justify-center px-4 py-16 text-center sm:py-24">
+        <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
+          Work out with other YC founders!
+        </h1>
+        <p className="mt-4 max-w-lg text-lg text-muted-foreground">
+          YMoginator is a community tool that lets you book shared gym sessions with other YC founders
+        </p>
+
+        {/* Inline verification */}
+        <VerifyInline />
+      </section>
+
+      {/* Features */}
+      <section className="border-t bg-muted/30 px-4 py-16">
+        <div className="mx-auto max-w-4xl">
+          <h2 className="mb-8 text-center text-2xl font-bold">How it works</h2>
+          <div className="grid gap-6 sm:grid-cols-3">
+            {features.map(({ icon: Icon, title, description }) => (
+              <Card key={title}>
+                <CardHeader>
+                  <Icon className="h-8 w-8 text-primary" />
+                  <CardTitle className="mt-2">{title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-sm">
+                    {description}
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Leaderboard Preview */}
+      {topProfiles && topProfiles.length > 0 && (
+        <section className="border-t px-4 py-16">
+          <div className="mx-auto max-w-md">
+            <h2 className="mb-6 text-center text-2xl font-bold">
+              Top Streaks
+            </h2>
+            <div className="space-y-2">
+              {topProfiles.map((p, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between rounded-lg border p-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg font-bold text-muted-foreground">
+                      #{i + 1}
+                    </span>
+                    <div>
+                      <p className="font-medium">{p.name || "Anonymous"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {p.company}
+                        {p.batch && ` (${p.batch})`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 font-semibold">
+                    <Flame className="h-4 w-4 text-orange-500" />
+                    {p.current_streak}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 text-center">
+              <Link href="/leaderboard">
+                <Button variant="outline" className="gap-1.5">
+                  View Full Leaderboard
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Footer */}
+      <footer className="mt-auto border-t py-6 text-center text-sm text-muted-foreground">
+        YMoginator &mdash; Built with 💙 by Vikram from <a href="https://tryardent.com/" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground transition-colors">Ardent</a> (YC X26)
+      </footer>
+    </div>
+  );
+}
