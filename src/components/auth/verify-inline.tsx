@@ -64,7 +64,7 @@ export function VerifyInline() {
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
       <p className="text-xs text-muted-foreground">
-        Find your verification link on your YC founder profile
+        Don&apos;t have one? <a href="https://bookface.ycombinator.com/verify" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground transition-colors">Create your verification link on Bookface</a>
       </p>
     </form>
   );

@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# YMoginator
+
+Gym accountability for YC founders. Book shared gym sessions, verify check-ins with in-browser AI, and compete on the streak leaderboard.
+
+Built by [Vikram](https://tryardent.com/) from Ardent (YC X26).
+
+## What is this?
+
+YMoginator is an open source community tool for YC founders who want to work out together. It's part gym booking system, part fitness accountability app, with a fun competitive leaderboard.
+
+**Features:**
+- **Book gym sessions** — Reserve time slots at popular SF gyms, see who else is going
+- **AI-verified check-ins** — Take a gym selfie and an in-browser vision model (SmolVLM-256M) verifies you're actually at the gym. No cheating!
+- **Streak leaderboard** — Build your gym streak and compete with other founders. Streak badges go from Normie to Tera Chad
+- **YC founder verification** — Sign up with your YC verification link to prove you're a real founder
+
+## Tech Stack
+
+- **Next.js 16** (App Router) + TypeScript
+- **Supabase** — Postgres, Auth, Storage, RLS
+- **shadcn/ui** + Tailwind CSS
+- **Transformers.js** + SmolVLM-256M-Instruct — in-browser gym photo verification via Web Worker
+- **date-fns** for date handling
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Node.js 18+
+- A [Supabase](https://supabase.com) project
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Clone the repo:
+   ```bash
+   git clone https://github.com/VikramChennai/YMoginator.git
+   cd YMoginator
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-## Learn More
+3. Create a `.env` file with your Supabase credentials:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+4. Run the database migration:
+   ```bash
+   npx supabase link --project-ref your-project-ref
+   npx supabase db push
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+5. Start the dev server:
+   ```bash
+   npm run dev
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Streak Badges
 
-## Deploy on Vercel
+| Streak | Badge |
+|--------|-------|
+| 1-2 days | Normie |
+| 3-6 days | Chadlite |
+| 7-13 days | Chad |
+| 14-29 days | GigaChad |
+| 30+ days | Tera Chad |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
