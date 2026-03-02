@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createSlotEvent, addAttendee } from "@/lib/google-calendar";
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
@@ -143,6 +144,51 @@ export async function POST(request: NextRequest) {
       );
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Google Calendar sync (best-effort, don't block booking on failure)
+  try {
+    // Get user's profile for email
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("email")
+      .eq("id", user.id)
+      .single();
+
+    // Get location info for event details
+    const { data: location } = await supabase
+      .from("locations")
+      .select("name, address")
+      .eq("id", slot.location_id)
+      .single();
+
+    const userEmail = profile?.email || user.email;
+
+    if (slot.google_event_id) {
+      // Event already exists — add this user as attendee
+      await addAttendee(slot.google_event_id, userEmail!);
+    } else {
+      // Create new event for this time slot
+      const locationStr = [location?.name, location?.address].filter(Boolean).join(", ");
+      const eventId = await createSlotEvent({
+        summary: `Gym Session @ ${location?.name || "Gym"}`,
+        description: "YMoginator gym session — let's get it!\n\nBooked via ymoginator.com",
+        location: locationStr,
+        date: slot.date,
+        startTime: slot.start_time,
+        endTime: slot.end_time,
+        attendeeEmails: [userEmail!],
+      });
+
+      // Save event ID to the time slot
+      await supabase
+        .from("time_slots")
+        .update({ google_event_id: eventId })
+        .eq("id", time_slot_id);
+    }
+  } catch (calError) {
+    // Log but don't fail the booking
+    console.error("Calendar sync failed:", calError);
   }
 
   return NextResponse.json(data, { status: 201 });

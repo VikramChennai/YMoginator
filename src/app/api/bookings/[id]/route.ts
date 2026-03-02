@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { removeAttendee } from "@/lib/google-calendar";
 
 export async function PATCH(
   request: NextRequest,
@@ -34,6 +35,27 @@ export async function PATCH(
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Google Calendar sync — remove attendee (best-effort)
+  try {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("email")
+      .eq("id", user.id)
+      .single();
+
+    const { data: slot } = await supabase
+      .from("time_slots")
+      .select("google_event_id")
+      .eq("id", data.time_slot_id)
+      .single();
+
+    if (slot?.google_event_id && profile?.email) {
+      await removeAttendee(slot.google_event_id, profile.email);
+    }
+  } catch (calError) {
+    console.error("Calendar sync failed:", calError);
   }
 
   return NextResponse.json(data);
