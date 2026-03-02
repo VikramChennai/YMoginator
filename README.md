@@ -2,7 +2,7 @@
 
 Gym accountability for YC founders. Book shared gym sessions, verify check-ins with in-browser AI, and compete on the streak leaderboard.
 
-Built by [Vikram](https://tryardent.com/) from Ardent (YC X26).
+Built by Vikram from [Ardent](https://tryardent.com/) (YC X26).
 
 ## What is this?
 

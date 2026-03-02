@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
   const slotIds = slots.map((s) => s.id);
   const { data: bookings } = await supabase
     .from("bookings")
-    .select("*, profile:profiles(id, name, avatar_url)")
+    .select("*, profile:profiles(id, name, company, batch, avatar_url)")
     .in("time_slot_id", slotIds)
     .eq("status", "confirmed");
 

@@ -17,8 +17,7 @@ export default async function LeaderboardPage() {
       <div>
         <h1 className="text-2xl font-bold">Leaderboard</h1>
         <p className="text-muted-foreground">
-          Who&apos;s been showing up? The founders with the best gym streaks
-          rise to the top.
+          You might have 1M ARR but are you MOGGING on a daily basis?
         </p>
       </div>
 

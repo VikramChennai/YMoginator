@@ -50,7 +50,7 @@ export default async function HomePage() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div>
       {/* Top bar — just a login link, no full navbar */}
       <div className="flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-1.5 font-bold">
@@ -130,13 +130,14 @@ export default async function HomePage() {
                     <span className="text-lg font-bold text-muted-foreground">
                       #{i + 1}
                     </span>
-                    <div>
-                      <p className="font-medium">{p.name || "Anonymous"}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {p.company}
-                        {p.batch && ` (${p.batch})`}
-                      </p>
-                    </div>
+                    <p className="font-medium">
+                      {p.name || "Anonymous"}
+                      {(p.company || p.batch) && (
+                        <span className="ml-1 font-normal text-muted-foreground">
+                          ({[p.company, p.batch].filter(Boolean).join(", ")})
+                        </span>
+                      )}
+                    </p>
                   </div>
                   <div className="flex items-center gap-1 font-semibold">
                     <Flame className="h-4 w-4 text-orange-500" />
@@ -157,10 +158,6 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* Footer */}
-      <footer className="mt-auto border-t py-6 text-center text-sm text-muted-foreground">
-        YMoginator &mdash; Built with 💙 by Vikram from <a href="https://tryardent.com/" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground transition-colors">Ardent</a> (YC X26)
-      </footer>
     </div>
   );
 }

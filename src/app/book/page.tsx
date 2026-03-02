@@ -70,7 +70,7 @@ export default function BookPage() {
   };
 
   const today = new Date();
-  const maxDate = addDays(today, 14);
+  const maxDate = addDays(today, 30);
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 p-4 sm:p-6">
@@ -102,35 +102,37 @@ export default function BookPage() {
       {/* Date + Time Slots side by side */}
       <section>
         <h2 className="mb-3 text-lg font-semibold">2. Pick a date & time</h2>
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+        <div className="flex gap-4 items-start">
           {/* Calendar */}
           <Calendar
             mode="single"
             selected={selectedDate}
             onSelect={(d) => d && setSelectedDate(d)}
             disabled={(date) => date < today || date > maxDate}
-            className="shrink-0 rounded-md border w-fit"
+            className="shrink-0 rounded-md border w-fit h-fit"
           />
 
           {/* Time Slots */}
-          <div className="flex-1">
+          <div className="flex min-h-0 flex-1 flex-col">
             <p className="mb-2 text-sm text-muted-foreground">
               {selectedLocation?.name} &middot;{" "}
               {format(selectedDate, "EEE, MMM d")}
             </p>
-            {loadingSlots ? (
-              <div className="grid gap-2 sm:grid-cols-2">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <Skeleton key={i} className="h-24 rounded-lg" />
-                ))}
-              </div>
-            ) : (
-              <TimeSlotGrid
-                slots={slots}
-                onBook={handleBook}
-                loading={loadingSlots}
-              />
-            )}
+            <div className="min-h-0 flex-1">
+              {loadingSlots ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <Skeleton key={i} className="h-24 rounded-lg" />
+                  ))}
+                </div>
+              ) : (
+                <TimeSlotGrid
+                  slots={slots}
+                  onBook={handleBook}
+                  loading={loadingSlots}
+                />
+              )}
+            </div>
           </div>
         </div>
       </section>

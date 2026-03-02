@@ -66,6 +66,11 @@ export function Navbar() {
           {profile && (
             <span className="text-sm text-muted-foreground">
               {profile.name}
+              {(profile.company || profile.batch) && (
+                <span className="ml-1 opacity-70">
+                  ({[profile.company, profile.batch].filter(Boolean).join(", ")})
+                </span>
+              )}
             </span>
           )}
           <Button variant="ghost" size="sm" onClick={signOut} className="gap-1.5">

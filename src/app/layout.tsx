@@ -44,8 +44,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <Navbar />
-          {children}
+          <div className="flex min-h-screen flex-col">
+            <Navbar />
+            <main className="flex-1">{children}</main>
+            <footer className="border-t py-6 text-center text-sm text-muted-foreground">
+              YMoginator &mdash; Built with 💙 by Vikram from <a href="https://tryardent.com/" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground transition-colors">Ardent</a> (YC X26)
+            </footer>
+          </div>
           <Toaster />
           <Analytics />
         </AuthProvider>

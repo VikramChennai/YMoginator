@@ -16,7 +16,7 @@ import { Clock, Check } from "lucide-react";
 import { toast } from "sonner";
 
 interface SlotBooking {
-  profile?: { id: string; name: string; avatar_url: string | null };
+  profile?: { id: string; name: string; company?: string; batch?: string; avatar_url: string | null };
 }
 
 interface TimeSlotData {
@@ -80,8 +80,8 @@ export function TimeSlotGrid({ slots, onBook, loading }: TimeSlotGridProps) {
 
   return (
     <>
-      <div className="max-h-[420px] overflow-y-auto rounded-lg border p-1">
-        <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="max-h-[268px] overflow-y-auto rounded-lg border p-1">
+        <div className="grid gap-1.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {slots.map((slot) => {
             const state = getSlotState(slot);
             const spotsLeft = slot.max_capacity - slot.current_bookings;
@@ -125,21 +125,20 @@ export function TimeSlotGrid({ slots, onBook, loading }: TimeSlotGridProps) {
 
                 {/* Booked users */}
                 {slot.bookings.length > 0 && (
-                  <div className="mt-1 flex -space-x-1.5">
-                    {slot.bookings.slice(0, 5).map((b, i) => (
-                      <Avatar key={i} className="h-5 w-5 border-2 border-white">
-                        <AvatarFallback className="text-[9px]">
-                          {b.profile?.name
-                            ?.split(" ")
-                            .map((n) => n[0])
-                            .join("") || "?"}
-                        </AvatarFallback>
-                      </Avatar>
-                    ))}
-                    {slot.bookings.length > 5 && (
-                      <span className="flex h-5 items-center pl-1.5 text-[10px] text-muted-foreground">
-                        +{slot.bookings.length - 5}
+                  <div className="mt-1 flex flex-wrap gap-x-1.5 text-[11px] text-muted-foreground">
+                    {slot.bookings.slice(0, 3).map((b, i) => (
+                      <span key={i}>
+                        {b.profile?.name?.split(" ")[0] || "?"}
+                        {(b.profile?.company || b.profile?.batch) && (
+                          <span className="opacity-70">
+                            {" "}({[b.profile?.company, b.profile?.batch].filter(Boolean).join(", ")})
+                          </span>
+                        )}
+                        {i < Math.min(slot.bookings.length, 3) - 1 && " · "}
                       </span>
+                    ))}
+                    {slot.bookings.length > 3 && (
+                      <span className="opacity-70">+{slot.bookings.length - 3} more</span>
                     )}
                   </div>
                 )}
