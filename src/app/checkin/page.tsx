@@ -31,7 +31,7 @@ export default function CheckinPage() {
       <div>
         <h1 className="text-2xl font-bold">Check In</h1>
         <p className="text-muted-foreground">
-          Take a picture of yourself at the gym and we use an in-browser vLLM to verify it. This will add to your streak!
+          Take a picture of yourself at the gym and we use an in-browser CLIP model to verify it. This will add to your streak!
         </p>
       </div>
 
@@ -57,9 +57,16 @@ export default function CheckinPage() {
               <Card key={checkin.id}>
                 <CardHeader className="p-3">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium">
-                      {format(parseISO(checkin.created_at), "EEE, MMM d, yyyy 'at' h:mm a")}
-                    </CardTitle>
+                    <div>
+                      <CardTitle className="text-sm font-medium">
+                        {format(parseISO(checkin.created_at), "EEE, MMM d, yyyy 'at' h:mm a")}
+                      </CardTitle>
+                      {checkin.booking?.time_slot?.location?.name && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {checkin.booking.time_slot.location.name}
+                        </p>
+                      )}
+                    </div>
                     <Badge
                       variant={checkin.verified ? "default" : "destructive"}
                     >

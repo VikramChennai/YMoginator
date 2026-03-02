@@ -11,7 +11,9 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PhotoUpload } from "./photo-upload";
+import { BookingSelector } from "./booking-selector";
 import { useGymVerifier } from "@/hooks/use-gym-verifier";
+import { useTodaysBookings } from "@/hooks/use-todays-bookings";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/auth/auth-provider";
 import { toast } from "sonner";
@@ -26,18 +28,26 @@ import {
 export function GymVerifier() {
   const { status, progress, result, error, loadModel, verify, reset } =
     useGymVerifier();
+  const {
+    bookings,
+    loading: bookingsLoading,
+    selectedBookingId,
+    setSelectedBookingId,
+  } = useTodaysBookings();
   const { user, refreshProfile } = useAuth();
   const supabase = createClient();
   const [imageData, setImageData] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Auto-load model on mount
+  const hasBooking = bookings.length > 0;
+
+  // Auto-load model on mount (only if user has a booking)
   useEffect(() => {
-    if (status === "idle") {
+    if (status === "idle" && hasBooking) {
       loadModel();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [hasBooking]);
 
   const handleCapture = (data: string) => {
     setImageData(data);
@@ -50,7 +60,13 @@ export function GymVerifier() {
   };
 
   const handleCheckin = async () => {
-    if (!user || !imageData || !result?.verified) return;
+    console.log("[checkin] handleCheckin called", {
+      user: !!user,
+      imageData: !!imageData,
+      verified: result?.verified,
+      selectedBookingId,
+    });
+    if (!user || !imageData || !result?.verified || !selectedBookingId) return;
     setSubmitting(true);
 
     try {
@@ -77,6 +93,7 @@ export function GymVerifier() {
           photo_url: publicUrl,
           verified: true,
           verification_result: result.result,
+          booking_id: selectedBookingId,
         }),
       });
 
@@ -111,54 +128,67 @@ export function GymVerifier() {
           Gym Check-in
         </CardTitle>
         <CardDescription>
-          Take a gym selfie and our AI will verify you&apos;re actually there.
-          No cheating!
+          Take a gym selfie and our in-browser CLIP model will verify
+          you&apos;re actually there. No cheating!
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Loading progress */}
-        {(status === "idle" || status === "loading") && (
-          <div className="space-y-2 text-center">
-            <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">
-              Loading AI model... {Math.round(progress)}%
-            </p>
-            <div className="mx-auto h-2 w-48 rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-primary transition-all"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-        )}
+        {/* Booking selector — always shown first */}
+        <BookingSelector
+          bookings={bookings}
+          loading={bookingsLoading}
+          selectedBookingId={selectedBookingId}
+          onSelect={setSelectedBookingId}
+        />
 
-        {/* Step 2: Capture photo */}
-        {(status === "ready" || status === "verifying" || status === "done") && (
+        {/* Only show photo/verify flow if user has a booking */}
+        {hasBooking && !bookingsLoading && (
           <>
-            <PhotoUpload
-              onCapture={handleCapture}
-              disabled={status === "verifying" || submitting}
-            />
-
-            {/* Verify button */}
-            {imageData && status === "ready" && (
-              <Button
-                onClick={handleVerify}
-                className="w-full gap-2"
-              >
-                <Brain className="h-4 w-4" />
-                Verify Photo
-              </Button>
+            {/* Loading progress */}
+            {(status === "idle" || status === "loading") && (
+              <div className="space-y-2 text-center">
+                <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  Loading CLIP model... {Math.round(progress)}%
+                </p>
+                <div className="mx-auto h-2 w-48 rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
             )}
 
-            {/* Verifying spinner */}
-            {status === "verifying" && (
-              <div className="flex items-center justify-center gap-2 py-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm text-muted-foreground">
-                  Analyzing your photo...
-                </span>
-              </div>
+            {/* Step 2: Capture photo */}
+            {(status === "ready" || status === "verifying") && (
+              <>
+                <PhotoUpload
+                  onCapture={handleCapture}
+                  disabled={status === "verifying" || submitting}
+                />
+
+                {/* Verify button */}
+                {imageData && status === "ready" && (
+                  <Button
+                    onClick={handleVerify}
+                    className="w-full gap-2"
+                  >
+                    <Brain className="h-4 w-4" />
+                    Verify Photo
+                  </Button>
+                )}
+
+                {/* Verifying spinner */}
+                {status === "verifying" && (
+                  <div className="flex items-center justify-center gap-2 py-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm text-muted-foreground">
+                      Analyzing your photo...
+                    </span>
+                  </div>
+                )}
+              </>
             )}
 
             {/* Result */}
@@ -172,12 +202,9 @@ export function GymVerifier() {
                         Gym verified!
                       </span>
                     </div>
-                    <Badge variant="secondary" className="bg-green-100 text-green-800">
-                      {result.result}
-                    </Badge>
                     <Button
                       onClick={handleCheckin}
-                      disabled={submitting}
+                      disabled={submitting || !selectedBookingId}
                       className="w-full"
                     >
                       {submitting
@@ -193,25 +220,27 @@ export function GymVerifier() {
                         Not a gym photo
                       </span>
                     </div>
-                    <Badge variant="secondary">{result.result}</Badge>
-                    <Button variant="outline" onClick={handleReset}>
+                    <p className="text-sm text-muted-foreground">
+                      Our AI didn&apos;t detect a gym. Try a clearer photo.
+                    </p>
+                    <Button variant="outline" onClick={handleReset} className="w-full">
                       Try Again
                     </Button>
                   </>
                 )}
               </div>
             )}
-          </>
-        )}
 
-        {/* Error state */}
-        {status === "error" && (
-          <div className="space-y-2 text-center">
-            <p className="text-sm text-destructive">{error}</p>
-            <Button variant="outline" onClick={handleReset}>
-              Try Again
-            </Button>
-          </div>
+            {/* Error state */}
+            {status === "error" && (
+              <div className="space-y-2 text-center">
+                <p className="text-sm text-destructive">{error}</p>
+                <Button variant="outline" onClick={handleReset}>
+                  Try Again
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>

@@ -15,9 +15,31 @@ export async function GET(request: NextRequest) {
   const locationId = request.nextUrl.searchParams.get("location_id");
   const date = request.nextUrl.searchParams.get("date");
   const userOnly = request.nextUrl.searchParams.get("user_only");
+  const bookedDates = request.nextUrl.searchParams.get("booked_dates");
+
+  // Return distinct dates that have at least one confirmed booking for a location
+  if (bookedDates === "true" && locationId) {
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("time_slot:time_slots!inner(date, location_id)")
+      .eq("status", "confirmed")
+      .eq("time_slot.location_id", locationId);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    const dates = [
+      ...new Set(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        data.map((b: any) => b.time_slot?.date).filter(Boolean)
+      ),
+    ];
+    return NextResponse.json(dates);
+  }
 
   if (userOnly === "true") {
-    // Get current user's upcoming bookings
+    // Get current user's bookings
     const { data, error } = await supabase
       .from("bookings")
       .select(
@@ -36,7 +58,23 @@ export async function GET(request: NextRequest) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-    return NextResponse.json(data);
+
+    // Separate query for check-in status
+    const bookingIds = data.map((b) => b.id);
+    const { data: checkins } = await supabase
+      .from("gym_checkins")
+      .select("booking_id")
+      .in("booking_id", bookingIds.length > 0 ? bookingIds : ["__none__"]);
+
+    const checkedInIds = new Set(
+      checkins?.map((c) => c.booking_id).filter(Boolean) ?? []
+    );
+
+    const enriched = data.map((b) => ({
+      ...b,
+      checked_in: checkedInIds.has(b.id),
+    }));
+    return NextResponse.json(enriched);
   }
 
   if (!locationId || !date) {

@@ -1,37 +1,43 @@
-// Web Worker for SmolVLM gym photo verification
-// Runs model inference in a background thread
+// Web Worker for CLIP-based gym photo verification
+// Uses zero-shot image classification in a background thread
 
-import {
-  AutoProcessor,
-  AutoModelForVision2Seq,
-  load_image,
-} from "@huggingface/transformers";
+import { pipeline } from "@huggingface/transformers";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let processor: any = null;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let model: any = null;
+let classifier: any = null;
 
-const MODEL_ID = "HuggingFaceTB/SmolVLM-256M-Instruct";
+const MODEL_ID = "Xenova/clip-vit-base-patch32";
+
+const GYM_LABELS = [
+  "a photo of a gym or fitness center with exercise equipment",
+  "a photo of someone working out or exercising",
+  "a photo of weights, dumbbells, or barbells",
+];
+
+const NOT_GYM_LABELS = [
+  "a photo of a home or living room",
+  "a photo of an office or workplace",
+  "a photo of food or a restaurant",
+  "a photo of nature or outdoors",
+];
+
+const THRESHOLD = 0.55;
 
 async function loadModel(
   onProgress: (progress: { status: string; progress?: number }) => void
 ) {
   onProgress({ status: "loading", progress: 0 });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const progressCallback = (p: any) => {
-    onProgress({ status: "loading", progress: p.progress ?? 0 });
-  };
-
-  processor = await AutoProcessor.from_pretrained(MODEL_ID, {
-    progress_callback: progressCallback,
-  });
-
-  model = await AutoModelForVision2Seq.from_pretrained(MODEL_ID, {
-    dtype: "q4",
-    progress_callback: progressCallback,
-  });
+  classifier = await (pipeline as Function)(
+    "zero-shot-image-classification",
+    MODEL_ID,
+    {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      progress_callback: (p: any) => {
+        onProgress({ status: "loading", progress: p.progress ?? 0 });
+      },
+    }
+  );
 
   onProgress({ status: "ready", progress: 100 });
 }
@@ -40,53 +46,36 @@ async function verifyImage(imageData: string): Promise<{
   verified: boolean;
   result: string;
 }> {
-  if (!processor || !model) {
+  if (!classifier) {
     throw new Error("Model not loaded");
   }
 
-  const image = await load_image(imageData);
+  const allLabels = [...GYM_LABELS, ...NOT_GYM_LABELS];
+  const rawOutput = await classifier(imageData, allLabels);
+  // Normalize: pipeline may return array or array-of-arrays
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const output: { label: string; score: number }[] = Array.isArray(rawOutput[0])
+    ? rawOutput[0]
+    : rawOutput;
 
-  const prompt =
-    "Is this a photo taken inside a gym or fitness center? Look for gym equipment like weights, treadmills, machines, mirrors, or workout spaces. Reply with YES or NO followed by a brief explanation.";
+  console.log("[gym-verifier] CLIP scores:", JSON.stringify(output, null, 2));
 
-  const messages = [
-    {
-      role: "user",
-      content: [
-        { type: "image", image },
-        { type: "text", text: prompt },
-      ],
-    },
-  ];
+  // Sum scores for gym vs non-gym labels
+  let gymScore = 0;
 
-  // Apply chat template to get text, then process text + images separately
-  const text = processor.apply_chat_template(messages, {
-    add_generation_prompt: true,
-  });
-  const inputs = await processor(text, [image]);
+  for (const item of output) {
+    if (GYM_LABELS.includes(item.label)) {
+      gymScore += item.score;
+    }
+  }
 
-  const output = await model.generate({
-    ...inputs,
-    max_new_tokens: 100,
-    do_sample: false,
-  });
-
-  // Decode only the newly generated tokens
-  const promptLength = inputs.input_ids.dims[1];
-  const newTokens = output.slice(null, [promptLength, null]);
-  const decoded = processor.batch_decode(newTokens, {
-    skip_special_tokens: true,
-  });
-
-  const resultText = decoded[0]?.trim() || "";
-  const isGym =
-    resultText.toUpperCase().startsWith("YES") ||
-    resultText.toUpperCase().includes("YES,") ||
-    resultText.toUpperCase().includes("YES.");
+  const isGym = gymScore >= THRESHOLD;
 
   return {
     verified: isGym,
-    result: resultText,
+    result: isGym
+      ? `Gym detected (${Math.round(gymScore * 100)}% confidence)`
+      : `Not detected as gym (${Math.round(gymScore * 100)}% confidence)`,
   };
 }
 

@@ -39,7 +39,7 @@ export default async function HomePage() {
       icon: Camera,
       title: "AI-Verified Check-ins",
       description:
-        "In-browser vLLM powered verifcation. Just take a picture of you at the gym!",
+        "In-browser CLIP-powered verification. Just take a picture of you at the gym!",
     },
     {
       icon: Trophy,

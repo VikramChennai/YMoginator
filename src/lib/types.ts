@@ -44,6 +44,7 @@ export interface Booking {
   created_at: string;
   time_slot?: TimeSlot & { location?: Location };
   profile?: Pick<Profile, "id" | "name" | "avatar_url">;
+  checked_in?: boolean;
 }
 
 export interface GymCheckin {
@@ -54,6 +55,18 @@ export interface GymCheckin {
   verification_result: string;
   checkin_date: string;
   created_at: string;
+  booking_id: string | null;
+  booking?: {
+    id: string;
+    time_slot?: {
+      start_time: string;
+      end_time: string;
+      date: string;
+      location?: {
+        name: string;
+      };
+    };
+  };
 }
 
 export interface YCVerificationData {

@@ -25,6 +25,15 @@ export async function PATCH(
     );
   }
 
+  // Rollback any check-in linked to this booking before cancelling
+  const { error: rollbackError } = await supabase.rpc(
+    "rollback_checkin_for_booking",
+    { p_booking_id: id, p_user_id: user.id }
+  );
+  if (rollbackError) {
+    console.error("Checkin rollback failed:", rollbackError);
+  }
+
   const { data, error } = await supabase
     .from("bookings")
     .update({ status: "cancelled" })

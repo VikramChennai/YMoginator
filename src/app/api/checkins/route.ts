@@ -13,7 +13,18 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("gym_checkins")
-    .select("*")
+    .select(`
+      *,
+      booking:bookings(
+        id,
+        time_slot:time_slots(
+          start_time,
+          end_time,
+          date,
+          location:locations(name)
+        )
+      )
+    `)
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(30);
@@ -35,11 +46,47 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { photo_url, verified, verification_result } = await request.json();
+  const { photo_url, verified, verification_result, booking_id } =
+    await request.json();
 
   if (!photo_url) {
     return NextResponse.json(
       { error: "photo_url is required" },
+      { status: 400 }
+    );
+  }
+
+  if (!booking_id) {
+    return NextResponse.json(
+      { error: "booking_id is required — please select a booked session" },
+      { status: 400 }
+    );
+  }
+
+  // Validate booking belongs to user and is confirmed
+  const { data: booking, error: bookingError } = await supabase
+    .from("bookings")
+    .select("id, user_id, status")
+    .eq("id", booking_id)
+    .single();
+
+  if (bookingError || !booking) {
+    return NextResponse.json(
+      { error: "Booking not found" },
+      { status: 404 }
+    );
+  }
+
+  if (booking.user_id !== user.id) {
+    return NextResponse.json(
+      { error: "Booking does not belong to you" },
+      { status: 403 }
+    );
+  }
+
+  if (booking.status !== "confirmed") {
+    return NextResponse.json(
+      { error: "Booking is not confirmed" },
       { status: 400 }
     );
   }
@@ -52,6 +99,7 @@ export async function POST(request: NextRequest) {
       photo_url,
       verified: verified || false,
       verification_result: verification_result || "",
+      booking_id,
     })
     .select()
     .single();

@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO, isAfter } from "date-fns";
-import { CalendarDays, Clock, MapPin, X } from "lucide-react";
+import { CalendarDays, Clock, MapPin, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Booking } from "@/lib/types";
 
@@ -36,12 +37,17 @@ export function MyBookings({ bookings, onCancel }: MyBookingsProps) {
     );
   }
 
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
   const handleCancel = async (bookingId: string) => {
+    setCancellingId(bookingId);
     try {
       await onCancel(bookingId);
       toast.success("Booking cancelled");
     } catch {
       toast.error("Failed to cancel booking");
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -55,9 +61,19 @@ export function MyBookings({ bookings, onCancel }: MyBookingsProps) {
                 <span className="font-medium">
                   {booking.time_slot?.location?.name}
                 </span>
-                <Badge variant="secondary" className="text-xs">
-                  Confirmed
-                </Badge>
+                {cancellingId === booking.id ? (
+                  <Badge variant="secondary" className="text-xs">
+                    Cancelling...
+                  </Badge>
+                ) : booking.checked_in ? (
+                  <Badge className="bg-green-100 text-green-800 text-xs border-0">
+                    Checked In
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="text-xs">
+                    Confirmed
+                  </Badge>
+                )}
               </div>
               <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
@@ -80,9 +96,14 @@ export function MyBookings({ bookings, onCancel }: MyBookingsProps) {
               variant="ghost"
               size="icon"
               onClick={() => handleCancel(booking.id)}
+              disabled={cancellingId !== null}
               title="Cancel booking"
             >
-              <X className="h-4 w-4" />
+              {cancellingId === booking.id ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <X className="h-4 w-4" />
+              )}
             </Button>
           </CardContent>
         </Card>

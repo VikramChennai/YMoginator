@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { format, addDays } from "date-fns";
+import { format, addDays, parseISO } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LocationPicker } from "@/components/booking/location-picker";
@@ -20,6 +20,7 @@ export default function BookPage() {
   >([]);
   const [loadingLocations, setLoadingLocations] = useState(true);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [bookedDates, setBookedDates] = useState<Date[]>([]);
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -39,6 +40,23 @@ export default function BookPage() {
     };
     fetchLocations();
   }, []);
+
+  const fetchBookedDates = useCallback(async () => {
+    if (!selectedLocation) return;
+    const res = await fetch(
+      `/api/bookings?booked_dates=true&location_id=${selectedLocation.id}`
+    );
+    const data = await res.json();
+    setBookedDates(
+      Array.isArray(data)
+        ? data.map((d: string) => parseISO(d))
+        : []
+    );
+  }, [selectedLocation]);
+
+  useEffect(() => {
+    fetchBookedDates();
+  }, [fetchBookedDates]);
 
   const fetchSlots = useCallback(async () => {
     if (!selectedLocation) return;
@@ -67,6 +85,7 @@ export default function BookPage() {
       throw new Error(data.error);
     }
     await fetchSlots();
+    await fetchBookedDates();
   };
 
   const today = new Date();
@@ -109,6 +128,7 @@ export default function BookPage() {
             selected={selectedDate}
             onSelect={(d) => d && setSelectedDate(d)}
             disabled={(date) => date < today || date > maxDate}
+            modifiers={{ hasBookings: bookedDates }}
             className="shrink-0 rounded-md border w-fit h-fit"
           />
 
