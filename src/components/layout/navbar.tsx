@@ -43,7 +43,7 @@ export function Navbar() {
               <rect x="31" y="17.5" width="7" height="13" rx="2.5" fill="white" />
             </g>
           </svg>
-          <span>Y Moginator</span>
+          <span>YCGYM</span>
         </Link>
 
         {/* Desktop nav */}

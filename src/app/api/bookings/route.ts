@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
       const locationStr = [location?.name, location?.address].filter(Boolean).join(", ");
       const eventId = await createSlotEvent({
         summary: `Gym Session @ ${location?.name || "Gym"}`,
-        description: "YMoginator gym session — let's get it!\n\nBooked via ymoginator.com",
+        description: "YCGYM gym session — let's get it!\n\nBooked via ycgym.com",
         location: locationStr,
         date: slot.date,
         startTime: slot.start_time,

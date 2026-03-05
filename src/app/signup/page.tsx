@@ -87,7 +87,7 @@ function SignupForm() {
               </Badge>
             </span>
           ) : (
-            "Join YMoginator to start your gym streak"
+            "Join YCGYM to start your gym streak"
           )}
         </CardDescription>
       </CardHeader>
