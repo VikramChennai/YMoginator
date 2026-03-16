@@ -84,6 +84,13 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Ensure slots exist for this location + date (idempotent — ON CONFLICT DO NOTHING)
+  await supabase.rpc("generate_time_slots", {
+    p_location_id: locationId,
+    p_start_date: date,
+    p_end_date: date,
+  });
+
   // Get time slots with bookings for a location + date
   const { data: slots, error: slotsError } = await supabase
     .from("time_slots")
