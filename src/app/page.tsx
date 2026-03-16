@@ -50,7 +50,7 @@ export default async function HomePage() {
   ];
 
   return (
-    <div>
+    <div className="flex min-h-0 flex-1 flex-col">
       {/* Top bar — just a login link, no full navbar */}
       <div className="flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-1.5 font-bold">
@@ -79,7 +79,7 @@ export default async function HomePage() {
       </div>
 
       {/* Hero */}
-      <section className="flex flex-col items-center justify-center px-4 py-16 text-center sm:py-24">
+      <section className="flex flex-1 flex-col items-center justify-center px-4 text-center">
         <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
           Work out with other YC founders!
         </h1>
@@ -92,7 +92,7 @@ export default async function HomePage() {
       </section>
 
       {/* Features */}
-      <section className="border-t bg-muted/30 px-4 py-16">
+      <section className="border-t bg-muted/30 px-4 py-12">
         <div className="mx-auto max-w-4xl">
           <h2 className="mb-8 text-center text-2xl font-bold">How it works</h2>
           <div className="grid gap-6 sm:grid-cols-3">

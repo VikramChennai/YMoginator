@@ -46,7 +46,7 @@ export default function RootLayout({
         <AuthProvider>
           <div className="flex min-h-screen flex-col">
             <Navbar />
-            <main className="flex-1">{children}</main>
+            <main className="flex flex-1 flex-col">{children}</main>
             <footer className="border-t py-6 text-center text-sm text-muted-foreground">
               YCGYM &mdash; Built with 💙 by Vikram from <a href="https://tryardent.com/" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground transition-colors">Ardent</a> (YC X26)
             </footer>
