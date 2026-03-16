@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const publicPaths = ["/", "/login", "/signup", "/verify", "/api/verify-yc"];
+const publicPaths = ["/", "/login", "/signup", "/verify", "/auth/confirm", "/api/verify-yc"];
 
 function redirectWithCookies(
   url: URL,
