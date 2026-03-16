@@ -25,24 +25,16 @@ export interface Location {
   created_at: string;
 }
 
-export interface TimeSlot {
-  id: string;
-  location_id: string;
-  date: string;
-  start_time: string;
-  end_time: string;
-  max_capacity: number;
-  current_bookings: number;
-  created_at: string;
-}
-
 export interface Booking {
   id: string;
   user_id: string;
-  time_slot_id: string;
+  location_id: string;
+  date: string;
+  start_time: string;
   status: "confirmed" | "cancelled";
+  google_event_id?: string | null;
   created_at: string;
-  time_slot?: TimeSlot & { location?: Location };
+  location?: Location;
   profile?: Pick<Profile, "id" | "name" | "avatar_url">;
   checked_in?: boolean;
 }
@@ -58,13 +50,10 @@ export interface GymCheckin {
   booking_id: string | null;
   booking?: {
     id: string;
-    time_slot?: {
-      start_time: string;
-      end_time: string;
-      date: string;
-      location?: {
-        name: string;
-      };
+    date: string;
+    start_time: string;
+    location?: {
+      name: string;
     };
   };
 }

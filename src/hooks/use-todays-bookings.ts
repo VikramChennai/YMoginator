@@ -5,10 +5,9 @@ import type { Booking } from "@/lib/types";
 
 const WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-function slotToTimestamp(booking: Booking): number | null {
-  const slot = booking.time_slot;
-  if (!slot?.date || !slot?.start_time) return null;
-  return new Date(`${slot.date}T${slot.start_time}`).getTime();
+function bookingToTimestamp(booking: Booking): number | null {
+  if (!booking.date || !booking.start_time) return null;
+  return new Date(`${booking.date}T${booking.start_time}`).getTime();
 }
 
 export function useTodaysBookings() {
@@ -38,14 +37,13 @@ export function useTodaysBookings() {
     return allBookings
       .filter((b) => {
         if (b.status !== "confirmed") return false;
-        const ts = slotToTimestamp(b);
+        const ts = bookingToTimestamp(b);
         if (!ts) return false;
         return Math.abs(ts - now) <= WINDOW_MS;
       })
       .sort((a, b) => {
-        // Sort by closest to now
-        const diff = Math.abs((slotToTimestamp(a) ?? 0) - now) -
-          Math.abs((slotToTimestamp(b) ?? 0) - now);
+        const diff = Math.abs((bookingToTimestamp(a) ?? 0) - now) -
+          Math.abs((bookingToTimestamp(b) ?? 0) - now);
         return diff;
       });
   }, [allBookings]);

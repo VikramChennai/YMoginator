@@ -10,7 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Clock, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -31,7 +30,7 @@ interface TimeSlotData {
 
 interface TimeSlotGridProps {
   slots: TimeSlotData[];
-  onBook: (slotId: string) => Promise<void>;
+  onBook: (startTime: string) => Promise<void>;
   loading: boolean;
 }
 
@@ -58,7 +57,7 @@ export function TimeSlotGrid({ slots, onBook, loading }: TimeSlotGridProps) {
     if (!confirmSlot) return;
     setBooking(true);
     try {
-      await onBook(confirmSlot.id);
+      await onBook(confirmSlot.start_time);
       toast.success("Booked! See you at the gym.");
       setConfirmSlot(null);
     } catch (err) {

@@ -17,12 +17,9 @@ export async function GET() {
       *,
       booking:bookings(
         id,
-        time_slot:time_slots(
-          start_time,
-          end_time,
-          date,
-          location:locations(name)
-        )
+        date,
+        start_time,
+        location:locations(name)
       )
     `)
     .eq("user_id", user.id)

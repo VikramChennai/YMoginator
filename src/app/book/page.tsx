@@ -74,11 +74,17 @@ export default function BookPage() {
     fetchSlots();
   }, [fetchSlots]);
 
-  const handleBook = async (slotId: string) => {
+  const handleBook = async (startTime: string) => {
+    if (!selectedLocation) return;
+    const dateStr = format(selectedDate, "yyyy-MM-dd");
     const res = await fetch("/api/bookings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ time_slot_id: slotId }),
+      body: JSON.stringify({
+        location_id: selectedLocation.id,
+        date: dateStr,
+        start_time: startTime,
+      }),
     });
     if (!res.ok) {
       const data = await res.json();
