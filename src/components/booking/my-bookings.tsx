@@ -22,11 +22,16 @@ function formatTime(time: string) {
   return `${display}:${m} ${ampm}`;
 }
 
+function endTime(startTime: string) {
+  const hour = parseInt(startTime.split(":")[0]) + 1;
+  return `${hour.toString().padStart(2, "0")}:00:00`;
+}
+
 export function MyBookings({ bookings, onCancel }: MyBookingsProps) {
   const upcoming = bookings.filter(
     (b) =>
-      b.time_slot &&
-      isAfter(parseISO(b.time_slot.date), new Date(new Date().setHours(0, 0, 0, 0) - 1))
+      b.date &&
+      isAfter(parseISO(b.date), new Date(new Date().setHours(0, 0, 0, 0) - 1))
   );
 
   if (upcoming.length === 0) {
@@ -59,7 +64,7 @@ export function MyBookings({ bookings, onCancel }: MyBookingsProps) {
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="font-medium">
-                  {booking.time_slot?.location?.name}
+                  {booking.location?.name}
                 </span>
                 {cancellingId === booking.id ? (
                   <Badge variant="secondary" className="text-xs">
@@ -78,17 +83,17 @@ export function MyBookings({ bookings, onCancel }: MyBookingsProps) {
               <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <CalendarDays className="h-3.5 w-3.5" />
-                  {booking.time_slot &&
-                    format(parseISO(booking.time_slot.date), "EEE, MMM d")}
+                  {booking.date &&
+                    format(parseISO(booking.date), "EEE, MMM d")}
                 </span>
                 <span className="flex items-center gap-1">
                   <Clock className="h-3.5 w-3.5" />
-                  {booking.time_slot &&
-                    `${formatTime(booking.time_slot.start_time)} - ${formatTime(booking.time_slot.end_time)}`}
+                  {booking.start_time &&
+                    `${formatTime(booking.start_time)} - ${formatTime(endTime(booking.start_time))}`}
                 </span>
                 <span className="flex items-center gap-1">
                   <MapPin className="h-3.5 w-3.5" />
-                  {booking.time_slot?.location?.city}
+                  {booking.location?.city}
                 </span>
               </div>
             </div>

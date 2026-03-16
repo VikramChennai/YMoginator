@@ -24,11 +24,15 @@ function formatTime(time: string) {
   return `${h12}:${m} ${ampm}`;
 }
 
+function endTime(startTime: string) {
+  const hour = parseInt(startTime.split(":")[0]) + 1;
+  return `${hour.toString().padStart(2, "0")}:00:00`;
+}
+
 function bookingLabel(booking: Booking) {
-  const slot = booking.time_slot;
-  if (!slot) return "Unknown session";
-  const location = slot.location?.name || "Gym";
-  return `${location} — ${formatTime(slot.start_time)}–${formatTime(slot.end_time)}`;
+  const location = booking.location?.name || "Gym";
+  if (!booking.start_time) return location;
+  return `${location} — ${formatTime(booking.start_time)}–${formatTime(endTime(booking.start_time))}`;
 }
 
 interface BookingSelectorProps {
@@ -83,7 +87,6 @@ export function BookingSelector({
   // 1 booking — auto-linked info card
   if (bookings.length === 1) {
     const booking = bookings[0];
-    const slot = booking.time_slot;
     return (
       <Card>
         <CardContent className="flex items-center justify-between py-3">
@@ -91,12 +94,12 @@ export function BookingSelector({
             <div className="space-y-0.5">
               <div className="flex items-center gap-1.5 text-sm font-medium">
                 <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                {slot?.location?.name || "Gym"}
+                {booking.location?.name || "Gym"}
               </div>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
-                {slot
-                  ? `${formatTime(slot.start_time)} – ${formatTime(slot.end_time)}`
+                {booking.start_time
+                  ? `${formatTime(booking.start_time)} – ${formatTime(endTime(booking.start_time))}`
                   : "Unknown time"}
               </div>
             </div>

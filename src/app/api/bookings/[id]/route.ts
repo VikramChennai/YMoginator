@@ -54,14 +54,8 @@ export async function PATCH(
       .eq("id", user.id)
       .single();
 
-    const { data: slot } = await supabase
-      .from("time_slots")
-      .select("google_event_id")
-      .eq("id", data.time_slot_id)
-      .single();
-
-    if (slot?.google_event_id && profile?.email) {
-      await removeAttendee(slot.google_event_id, profile.email);
+    if (data.google_event_id && profile?.email) {
+      await removeAttendee(data.google_event_id, profile.email);
     }
   } catch (calError) {
     console.error("Calendar sync failed:", calError);

@@ -61,9 +61,9 @@ export default function CheckinPage() {
                       <CardTitle className="text-sm font-medium">
                         {format(parseISO(checkin.created_at), "EEE, MMM d, yyyy 'at' h:mm a")}
                       </CardTitle>
-                      {checkin.booking?.time_slot?.location?.name && (
+                      {checkin.booking?.location?.name && (
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {checkin.booking.time_slot.location.name}
+                          {checkin.booking.location.name}
                         </p>
                       )}
                     </div>

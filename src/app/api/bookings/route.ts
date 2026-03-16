@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createSlotEvent, addAttendee } from "@/lib/google-calendar";
 
+function padHour(h: number) {
+  return h.toString().padStart(2, "0");
+}
+
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
   const {
@@ -21,36 +25,22 @@ export async function GET(request: NextRequest) {
   if (bookedDates === "true" && locationId) {
     const { data, error } = await supabase
       .from("bookings")
-      .select("time_slot:time_slots!inner(date, location_id)")
+      .select("date")
       .eq("status", "confirmed")
-      .eq("time_slot.location_id", locationId);
+      .eq("location_id", locationId);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    const dates = [
-      ...new Set(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        data.map((b: any) => b.time_slot?.date).filter(Boolean)
-      ),
-    ];
+    const dates = [...new Set(data.map((b) => b.date))];
     return NextResponse.json(dates);
   }
 
   if (userOnly === "true") {
-    // Get current user's bookings
     const { data, error } = await supabase
       .from("bookings")
-      .select(
-        `
-        *,
-        time_slot:time_slots(
-          *,
-          location:locations(*)
-        )
-      `
-      )
+      .select("*, location:locations(*)")
       .eq("user_id", user.id)
       .eq("status", "confirmed")
       .order("created_at", { ascending: false });
@@ -59,7 +49,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Separate query for check-in status
+    // Check-in status
     const bookingIds = data.map((b) => b.id);
     const { data: checkins } = await supabase
       .from("gym_checkins")
@@ -84,43 +74,60 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Get time slots with bookings for a location + date
-  const { data: slots, error: slotsError } = await supabase
-    .from("time_slots")
+  // Get location to compute slots from its hours
+  const { data: location, error: locError } = await supabase
+    .from("locations")
     .select("*")
-    .eq("location_id", locationId)
-    .eq("date", date)
-    .order("start_time");
+    .eq("id", locationId)
+    .single();
 
-  if (slotsError) {
-    return NextResponse.json({ error: slotsError.message }, { status: 500 });
+  if (locError || !location) {
+    return NextResponse.json({ error: "Location not found" }, { status: 404 });
   }
 
-  // Get bookings for these slots with profile info
-  const slotIds = slots.map((s) => s.id);
+  // Compute all possible 1-hour slots from location hours
+  const computedSlots = [];
+  for (let hour = location.opening_hour; hour < location.closing_hour; hour++) {
+    computedSlots.push({
+      start_time: `${padHour(hour)}:00:00`,
+      end_time: `${padHour(hour + 1)}:00:00`,
+    });
+  }
+
+  // Get confirmed bookings for this location + date
   const { data: bookings } = await supabase
     .from("bookings")
     .select("*, profile:profiles(id, name, company, batch, avatar_url)")
-    .in("time_slot_id", slotIds)
+    .eq("location_id", locationId)
+    .eq("date", date)
     .eq("status", "confirmed");
 
   // Get user's bookings for this date
   const { data: userBookings } = await supabase
     .from("bookings")
-    .select("time_slot_id")
+    .select("start_time")
     .eq("user_id", user.id)
-    .in("time_slot_id", slotIds)
+    .eq("location_id", locationId)
+    .eq("date", date)
     .eq("status", "confirmed");
 
-  const userBookedSlotIds = new Set(
-    userBookings?.map((b) => b.time_slot_id) || []
+  const userBookedTimes = new Set(
+    userBookings?.map((b) => b.start_time) || []
   );
 
-  const slotsWithBookings = slots.map((slot) => ({
-    ...slot,
-    bookings: bookings?.filter((b) => b.time_slot_id === slot.id) || [],
-    user_booked: userBookedSlotIds.has(slot.id),
-  }));
+  const slotsWithBookings = computedSlots.map((slot) => {
+    const slotBookings =
+      bookings?.filter((b) => b.start_time === slot.start_time) || [];
+    return {
+      id: `${locationId}_${date}_${slot.start_time}`,
+      start_time: slot.start_time,
+      end_time: slot.end_time,
+      max_capacity: location.max_capacity_per_slot,
+      current_bookings: slotBookings.length,
+      bookings: slotBookings,
+      user_booked: userBookedTimes.has(slot.start_time),
+    };
+  });
 
   return NextResponse.json(slotsWithBookings);
 }
@@ -135,36 +142,58 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { time_slot_id } = await request.json();
+  const { location_id, date, start_time } = await request.json();
 
-  if (!time_slot_id) {
+  if (!location_id || !date || !start_time) {
     return NextResponse.json(
-      { error: "time_slot_id is required" },
+      { error: "location_id, date, and start_time are required" },
+      { status: 400 }
+    );
+  }
+
+  // Get location for capacity check
+  const { data: location } = await supabase
+    .from("locations")
+    .select("max_capacity_per_slot, name, address, opening_hour, closing_hour")
+    .eq("id", location_id)
+    .single();
+
+  if (!location) {
+    return NextResponse.json({ error: "Location not found" }, { status: 404 });
+  }
+
+  // Validate start_time is within location hours
+  const hour = parseInt(start_time.split(":")[0]);
+  if (hour < location.opening_hour || hour >= location.closing_hour) {
+    return NextResponse.json(
+      { error: "Time is outside location hours" },
       { status: 400 }
     );
   }
 
   // Check capacity
-  const { data: slot } = await supabase
-    .from("time_slots")
-    .select("*")
-    .eq("id", time_slot_id)
-    .single();
+  const { count } = await supabase
+    .from("bookings")
+    .select("*", { count: "exact", head: true })
+    .eq("location_id", location_id)
+    .eq("date", date)
+    .eq("start_time", start_time)
+    .eq("status", "confirmed");
 
-  if (!slot) {
-    return NextResponse.json({ error: "Time slot not found" }, { status: 404 });
-  }
-
-  if (slot.current_bookings >= slot.max_capacity) {
+  if ((count ?? 0) >= location.max_capacity_per_slot) {
     return NextResponse.json(
       { error: "This time slot is full" },
       { status: 400 }
     );
   }
 
+  // Compute end_time
+  const endHour = hour + 1;
+  const endTime = `${padHour(endHour)}:00:00`;
+
   const { data, error } = await supabase
     .from("bookings")
-    .insert({ user_id: user.id, time_slot_id })
+    .insert({ user_id: user.id, location_id, date, start_time })
     .select()
     .single();
 
@@ -184,48 +213,55 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Google Calendar sync (best-effort, don't block booking on failure)
+  // Google Calendar sync (best-effort)
   try {
-    // Get user's profile for email
     const { data: profile } = await supabase
       .from("profiles")
       .select("email")
       .eq("id", user.id)
       .single();
 
-    // Get location info for event details
-    const { data: location } = await supabase
-      .from("locations")
-      .select("name, address")
-      .eq("id", slot.location_id)
-      .single();
-
     const userEmail = profile?.email || user.email;
 
-    if (slot.google_event_id) {
-      // Event already exists — add this user as attendee
-      await addAttendee(slot.google_event_id, userEmail!);
+    // Check if another booking for this slot already has a Google event
+    const { data: existingBooking } = await supabase
+      .from("bookings")
+      .select("google_event_id")
+      .eq("location_id", location_id)
+      .eq("date", date)
+      .eq("start_time", start_time)
+      .eq("status", "confirmed")
+      .not("google_event_id", "is", null)
+      .limit(1)
+      .single();
+
+    if (existingBooking?.google_event_id) {
+      await addAttendee(existingBooking.google_event_id, userEmail!);
+      // Store event ID on this booking too
+      await supabase
+        .from("bookings")
+        .update({ google_event_id: existingBooking.google_event_id })
+        .eq("id", data.id);
     } else {
-      // Create new event for this time slot
-      const locationStr = [location?.name, location?.address].filter(Boolean).join(", ");
+      const locationStr = [location.name, location.address]
+        .filter(Boolean)
+        .join(", ");
       const eventId = await createSlotEvent({
-        summary: `Gym Session @ ${location?.name || "Gym"}`,
-        description: "YCGYM gym session — let's get it!\n\nBooked via ycgym.com",
+        summary: `Gym Session @ ${location.name || "Gym"}`,
+        description:
+          "YCGYM gym session — let's get it!\n\nBooked via ycgym.com",
         location: locationStr,
-        date: slot.date,
-        startTime: slot.start_time,
-        endTime: slot.end_time,
+        date,
+        startTime: start_time,
+        endTime: endTime,
         attendeeEmails: [userEmail!],
       });
-
-      // Save event ID to the time slot
       await supabase
-        .from("time_slots")
+        .from("bookings")
         .update({ google_event_id: eventId })
-        .eq("id", time_slot_id);
+        .eq("id", data.id);
     }
   } catch (calError) {
-    // Log but don't fail the booking
     console.error("Calendar sync failed:", calError);
   }
 
